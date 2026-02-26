@@ -1,0 +1,4 @@
+export enum RequestType {
+    CAPACITY_CHANGE = 'CAPACITY_CHANGE',
+    SERVICE_UPDATE = 'SERVICE_UPDATE',
+}

@@ -7,32 +7,340 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  role      String   // ADMIN, VENDOR, CUSTOMER
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  vendorProfile VendorProfile?
+// 1. Enums
+enum UserRole {
+  customer
+  vendor
+  admin
 }
 
-model VendorProfile {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  companyName String
-  status      String   @default("PENDING_APPROVAL") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  branches    Branch[]
+enum UserStatus {
+  pending
+  active
+  suspended
+}
+
+enum BranchStatus {
+  active
+  suspended
+  pending
+}
+
+enum ServiceName {
+  hot_desk
+  private_office
+  meeting_room
+}
+
+enum PriceUnit {
+  hour
+  day
+  week
+  month
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+  no_show
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+}
+
+enum PaymentMethod {
+  cash
+  card
+  apple_pay
+}
+
+enum RequestType {
+  capacity_change
+  pause_branch
+  activate_branch
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+enum OtpPurpose {
+  login
+  signup
+  verify
+}
+
+// 2. Models
+
+model User {
+  id              Int      @id @default(autoincrement())
+  fullName        String   @map("full_name") @db.VarChar(100)
+  email           String?  @unique @db.VarChar(100)
+  phoneNumber     String?  @unique @map("phone_number") @db.VarChar(20)
+  passwordHash    String?  @map("password_hash") @db.VarChar(255)
+  role            UserRole
+  status          UserStatus @default(pending)
+  isPhoneVerified Boolean  @default(false) @map("is_phone_verified")
+  isEmailVerified Boolean  @default(false) @map("is_email_verified")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  branches         Branch[]
+  bookings         Booking[]
+  requestsSubmitted ApprovalRequest[] @relation("VendorRequests")
+  requestsReviewed  ApprovalRequest[] @relation("AdminReviews")
+  otpSessions      OtpSession[]
+  auditLogs        AuditLog[]        @relation("AdminAuditLogs")
+
+  @@index([email, role])
+  @@index([phoneNumber])
+  @@map("users")
 }
 
 model Branch {
-  id              String   @id @default(uuid())
-  vendorProfileId String
-  name            String
-  city            String   // Amman, Irbid, Aqaba
-  address         String
-  
-  vendor          VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  id          Int          @id @default(autoincrement())
+  vendorId    Int          @map("vendor_id")
+  name        String       @db.VarChar(100)
+  description String?      @db.Text
+  city        String       @db.VarChar(50)
+  address     String       @db.VarChar(255)
+  latitude    Decimal?     @db.Decimal(10, 8)
+  longitude   Decimal?     @db.Decimal(11, 8)
+  status      BranchStatus @default(pending)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  vendor           User               @relation(fields: [vendorId], references: [id])
+  vendorServices   VendorService[]
+  approvalRequests ApprovalRequest[]
+  branchFacilities BranchFacility[]
+
+  @@index([vendorId])
+  @@index([city])
+  @@map("branches")
+}
+
+model Service {
+  id          Int         @id @default(autoincrement())
+  name        ServiceName @unique
+  description String?     @db.Text
+  unit        String      @db.VarChar(20)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  vendorServices   VendorService[]
+  approvalRequests ApprovalRequest[]
+
+  @@map("services")
+}
+
+model VendorService {
+  id                  Int       @id @default(autoincrement())
+  branchId            Int       @map("branch_id")
+  serviceId           Int       @map("service_id")
+  isAvailable         Boolean   @default(true) @map("is_available")
+  maxCapacity         Int       @map("max_capacity")
+  pricePerUnit        Decimal   @map("price_per_unit") @db.Decimal(10, 2)
+  priceUnit           PriceUnit @map("price_unit")
+  minBookingDuration  Int       @default(1) @map("min_booking_duration")
+  maxBookingDuration  Int?      @map("max_booking_duration")
+  cancellationPolicy  String?   @map("cancellation_policy") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  branch          Branch           @relation(fields: [branchId], references: [id])
+  service         Service          @relation(fields: [serviceId], references: [id])
+  availabilities  Availability[]
+  bookings        Booking[]
+  serviceFeatures ServiceFeature[]
+
+  @@unique([branchId, serviceId])
+  @@index([serviceId])
+  @@map("vendor_services")
+}
+
+model Availability {
+  id               Int      @id @default(autoincrement())
+  vendorServiceId  Int      @map("vendor_service_id")
+  date             DateTime @db.Date
+  startTime        DateTime? @map("start_time") @db.Time
+  endTime          DateTime? @map("end_time") @db.Time
+  availableUnits   Int      @map("available_units")
+  isBlocked        Boolean  @default(false) @map("is_blocked")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  vendorService VendorService @relation(fields: [vendorServiceId], references: [id])
+
+  @@index([vendorServiceId, date, startTime])
+  @@map("availability")
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  bookingNumber   String        @unique @map("booking_number") @db.VarChar(20)
+  customerId      Int           @map("customer_id")
+  vendorServiceId Int           @map("vendor_service_id")
+  bookingDate     DateTime      @map("booking_date") @db.Date
+  startTime       DateTime?     @map("start_time") @db.Time
+  endTime         DateTime?     @map("end_time") @db.Time
+  quantity        Int
+  totalPrice      Decimal       @map("total_price") @db.Decimal(10, 2)
+  status          BookingStatus @default(pending)
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  paymentMethod   PaymentMethod? @map("payment_method")
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  customer      User          @relation(fields: [customerId], references: [id])
+  vendorService VendorService @relation(fields: [vendorServiceId], references: [id])
+  payments      Payment[]
+
+  @@index([customerId])
+  @@index([vendorServiceId])
+  @@index([bookingDate])
+  @@index([status])
+  @@map("bookings")
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  bookingId       Int           @map("booking_id")
+  transactionId   String?       @unique @map("transaction_id") @db.VarChar(100)
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod @map("payment_method")
+  status          PaymentStatus @default(pending)
+  paymentDate     DateTime?     @map("payment_date")
+  gatewayResponse Json?         @map("gateway_response")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("payments")
+}
+
+model ApprovalRequest {
+  id          Int            @id @default(autoincrement())
+  vendorId    Int            @map("vendor_id")
+  branchId    Int            @map("branch_id")
+  serviceId   Int?           @map("service_id")
+  requestType RequestType    @map("request_type")
+  oldValue    String?        @map("old_value") @db.VarChar(255)
+  newValue    String         @map("new_value") @db.VarChar(255)
+  reason      String?        @db.Text
+  status      ApprovalStatus @default(pending)
+  reviewedBy  Int?           @map("reviewed_by")
+  reviewNotes String?        @map("review_notes") @db.Text
+  reviewedAt  DateTime?      @map("reviewed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  vendor   User    @relation("VendorRequests", fields: [vendorId], references: [id])
+  branch   Branch  @relation(fields: [branchId], references: [id])
+  service  Service? @relation(fields: [serviceId], references: [id])
+  reviewer User?   @relation("AdminReviews", fields: [reviewedBy], references: [id])
+
+  @@index([vendorId, status])
+  @@index([branchId])
+  @@map("approval_requests")
+}
+
+model OtpSession {
+  id          Int        @id @default(autoincrement())
+  userId      Int?       @map("user_id")
+  phoneNumber String     @map("phone_number") @db.VarChar(20)
+  otpCode     String     @map("otp_code") @db.VarChar(6)
+  purpose     OtpPurpose
+  expiresAt   DateTime   @map("expires_at")
+  isUsed      Boolean    @default(false) @map("is_used")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([phoneNumber, purpose, expiresAt])
+  @@index([otpCode])
+  @@map("otp_sessions")
+}
+
+model Facility {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  icon      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branchFacilities BranchFacility[]
+
+  @@map("facilities")
+}
+
+model BranchFacility {
+  id          Int      @id @default(autoincrement())
+  branchId    Int      @map("branch_id")
+  facilityId  Int      @map("facility_id")
+  isAvailable Boolean  @default(true) @map("is_available")
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  facility Facility @relation(fields: [facilityId], references: [id])
+
+  @@unique([branchId, facilityId])
+  @@index([branchId])
+  @@index([facilityId])
+  @@map("branch_facilities")
+}
+
+model Feature {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  icon      String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  serviceFeatures ServiceFeature[]
+
+  @@map("features")
+}
+
+model ServiceFeature {
+  id              Int      @id @default(autoincrement())
+  vendorServiceId Int      @map("vendor_service_id")
+  featureId       Int      @map("feature_id")
+  quantity        Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  vendorService VendorService @relation(fields: [vendorServiceId], references: [id])
+  feature       Feature       @relation(fields: [featureId], references: [id])
+
+  @@unique([vendorServiceId, featureId])
+  @@index([vendorServiceId])
+  @@index([featureId])
+  @@map("service_features")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  adminId    Int      @map("admin_id")
+  action     String   @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   Int      @map("entity_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin User @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }

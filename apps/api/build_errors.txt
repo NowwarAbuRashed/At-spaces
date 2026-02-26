@@ -1,0 +1,110 @@
+
+> api@0.0.1 build
+> nest build
+
+[96msrc/application/dtos/requests/create-approval-request.dto.ts[0m:[93m1[0m:[93m66[0m - [91merror[0m[90m TS2307: [0mCannot find module 'class-validator' or its corresponding type declarations.
+
+[7m1[0m import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+[7m [0m [91m                                                                 ~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/dtos/requests/create-approval-request.dto.ts[0m:[93m2[0m:[93m29[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../../domain/enums/request-type.enum' or its corresponding type declarations.
+
+[7m2[0m import { RequestType } from '../../../domain/enums/request-type.enum';
+[7m [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/dtos/requests/create-booking.dto.ts[0m:[93m1[0m:[93m70[0m - [91merror[0m[90m TS2307: [0mCannot find module 'class-validator' or its corresponding type declarations.
+
+[7m1[0m import { IsDateString, IsEnum, IsInt, IsOptional, IsUUID, Min } from 'class-validator';
+[7m [0m [91m                                                                     ~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/dtos/requests/create-booking.dto.ts[0m:[93m2[0m:[93m31[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../../domain/enums/payment-method.enum' or its corresponding type declarations.
+
+[7m2[0m import { PaymentMethod } from '../../../domain/enums/payment-method.enum';
+[7m [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/interfaces/services/booking-service.interface.ts[0m:[93m2[0m:[93m34[0m - [91merror[0m[90m TS2307: [0mCannot find module '../dtos/requests/create-booking.dto' or its corresponding type declarations.
+
+[7m2[0m import { CreateBookingDto } from '../dtos/requests/create-booking.dto';
+[7m [0m [91m                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/approval-request.service.ts[0m:[93m3[0m:[93m47[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/interfaces/vendor-service-repository.interface' or its corresponding type declarations.
+
+[7m3[0m import type { IVendorServiceRepository } from '../../domain/interfaces/vendor-service-repository.interface';
+[7m [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/approval-request.service.ts[0m:[93m4[0m:[93m36[0m - [91merror[0m[90m TS2307: [0mCannot find module '../interfaces/services/audit-service.interface' or its corresponding type declarations.
+
+[7m4[0m import type { IAuditService } from '../interfaces/services/audit-service.interface';
+[7m [0m [91m                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/approval-request.service.ts[0m:[93m7[0m:[93m35[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/business.exception' or its corresponding type declarations.
+
+[7m7[0m import { BusinessException } from '../exceptions/business.exception';
+[7m [0m [91m                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/approval-request.service.ts[0m:[93m8[0m:[93m32[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/enums/approval-status.enum' or its corresponding type declarations.
+
+[7m8[0m import { ApprovalStatus } from '../../domain/enums/approval-status.enum';
+[7m [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/approval-request.service.ts[0m:[93m9[0m:[93m29[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/enums/request-type.enum' or its corresponding type declarations.
+
+[7m9[0m import { RequestType } from '../../domain/enums/request-type.enum';
+[7m [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/booking.service.ts[0m:[93m3[0m:[93m41[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/interfaces/booking-repository.interface' or its corresponding type declarations.
+
+[7m3[0m import type { IBookingRepository } from '../../domain/interfaces/booking-repository.interface';
+[7m [0m [91m                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/booking.service.ts[0m:[93m5[0m:[93m47[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/interfaces/vendor-service-repository.interface' or its corresponding type declarations.
+
+[7m5[0m import type { IVendorServiceRepository } from '../../domain/interfaces/vendor-service-repository.interface';
+[7m [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/booking.service.ts[0m:[93m10[0m:[93m35[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/business.exception' or its corresponding type declarations.
+
+[7m10[0m import { BusinessException } from '../exceptions/business.exception';
+[7m  [0m [91m                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/booking.service.ts[0m:[93m12[0m:[93m31[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/enums/payment-method.enum' or its corresponding type declarations.
+
+[7m12[0m import { PaymentMethod } from '../../domain/enums/payment-method.enum';
+[7m  [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/booking.service.ts[0m:[93m13[0m:[93m31[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/enums/booking-status.enum' or its corresponding type declarations.
+
+[7m13[0m import { BookingStatus } from '../../domain/enums/booking-status.enum';
+[7m  [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/pricing.service.ts[0m:[93m3[0m:[93m35[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/business.exception' or its corresponding type declarations.
+
+[7m3[0m import { BusinessException } from '../exceptions/business.exception';
+[7m [0m [91m                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/application/services/pricing.service.ts[0m:[93m4[0m:[93m47[0m - [91merror[0m[90m TS2307: [0mCannot find module '../../domain/interfaces/vendor-service-repository.interface' or its corresponding type declarations.
+
+[7m4[0m import type { IVendorServiceRepository } from '../../domain/interfaces/vendor-service-repository.interface';
+[7m [0m [91m                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/entities/approval-request.entity.ts[0m:[93m1[0m:[93m33[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/domain.exception' or its corresponding type declarations.
+
+[7m1[0m import { DomainException } from '../exceptions/domain.exception';
+[7m [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/entities/approval-request.entity.ts[0m:[93m2[0m:[93m32[0m - [91merror[0m[90m TS2307: [0mCannot find module '../enums/approval-status.enum' or its corresponding type declarations.
+
+[7m2[0m import { ApprovalStatus } from '../enums/approval-status.enum';
+[7m [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/entities/approval-request.entity.ts[0m:[93m3[0m:[93m29[0m - [91merror[0m[90m TS2307: [0mCannot find module '../enums/request-type.enum' or its corresponding type declarations.
+
+[7m3[0m import { RequestType } from '../enums/request-type.enum';
+[7m [0m [91m                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/entities/booking.entity.ts[0m:[93m1[0m:[93m33[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/domain.exception' or its corresponding type declarations.
+
+[7m1[0m import { DomainException } from '../exceptions/domain.exception';
+[7m [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/entities/booking.entity.ts[0m:[93m2[0m:[93m31[0m - [91merror[0m[90m TS2307: [0mCannot find module '../enums/booking-status.enum' or its corresponding type declarations.
+
+[7m2[0m import { BookingStatus } from '../enums/booking-status.enum';
+[7m [0m [91m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/interfaces/approval-request-repository.interface.ts[0m:[93m2[0m:[93m32[0m - [91merror[0m[90m TS2307: [0mCannot find module '../enums/approval-status.enum' or its corresponding type declarations.
+
+[7m2[0m import { ApprovalStatus } from '../enums/approval-status.enum';
+[7m [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/domain/value-objects/money.vo.ts[0m:[93m1[0m:[93m33[0m - [91merror[0m[90m TS2307: [0mCannot find module '../exceptions/domain.exception' or its corresponding type declarations.
+
+[7m1[0m import { DomainException } from '../exceptions/domain.exception';
+[7m [0m [91m                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+Found 24 error(s).
+
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+npm error path D:\AtSpacesV1\apps\api
+npm error workspace api@0.0.1
+npm error location D:\AtSpacesV1\apps\api
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c nest build
