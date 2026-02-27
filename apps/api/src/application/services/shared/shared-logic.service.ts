@@ -30,11 +30,22 @@ export class SharedLogicService {
     }
 
     async getAiRecommendation(dto: AiRecommendDto): Promise<any> {
+        // Fetch real branches for the AI prompt and fallback
+        const branches = await this.prisma.branch.findMany({
+            where: { status: 'active' },
+            select: { id: true, name: true, city: true },
+            take: 10,
+        });
+
         if (!this.openai) {
-            return this.getFallbackRecommendation();
+            return this.getFallbackRecommendation(branches);
         }
 
         try {
+            const branchList = branches
+                .map(b => `"${b.name}" (ID: ${b.id}, City: ${b.city})`)
+                .join(', ');
+
             const prompt = `You are an AI assistant for a coworking space platform named At Spaces.
 A user is looking for a branch or service matching their criteria:
 Query: "${dto.query}"
@@ -47,7 +58,7 @@ Based on this, recommend a branch and an alternative. Answer strictly in this JS
   "recommendedBranch": { "id": number, "name": "string" },
   "alternatives": [ { "id": number, "name": "string" } ]
 }
-Available Mock Branches: "WeWork Abdali" (ID: 1), "ZINC King Hussein Business Park" (ID: 2), "The Office Space" (ID: 3).`;
+Available Branches: ${branchList}.`;
 
             const response = await this.openai.chat.completions.create({
                 model: 'gpt-4o-mini',
@@ -63,15 +74,17 @@ Available Mock Branches: "WeWork Abdali" (ID: 1), "ZINC King Hussein Business Pa
             this.logger.error('Failed to fetch AI recommendation from OpenAI', error);
         }
 
-        return this.getFallbackRecommendation();
+        return this.getFallbackRecommendation(branches);
     }
 
-    private getFallbackRecommendation() {
+    private getFallbackRecommendation(branches: { id: number; name: string }[]) {
+        if (branches.length === 0) {
+            return { recommendedBranch: null, alternatives: [] };
+        }
+
         return {
-            recommendedBranch: { id: 1, name: "WeWork Abdali" },
-            alternatives: [
-                { id: 2, name: "ZINC King Hussein Business Park" }
-            ]
+            recommendedBranch: { id: branches[0].id, name: branches[0].name },
+            alternatives: branches.slice(1, 3).map(b => ({ id: b.id, name: b.name })),
         };
     }
 
