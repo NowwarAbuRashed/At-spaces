@@ -36,5 +36,21 @@ export class UpdateAvailabilityDto {
     date: string;
 
     @IsOptional()
+    @IsString()
+    startTime?: string;
+
+    @IsOptional()
+    @IsString()
+    endTime?: string;
+
+    @IsNumber()
+    @IsNotEmpty()
+    availableUnits: number;
+
+    @IsOptional()
+    isBlocked?: boolean;
+
+    @IsOptional()
     slots?: any[];
 }
+

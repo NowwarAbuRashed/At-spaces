@@ -30,10 +30,39 @@ export class AvailabilityRepository implements IAvailabilityRepository {
     }
 
     async decreaseUnits(vendorServiceId: string, start: Date, end: Date, quantity: number): Promise<void> {
-        // Logic to decrease units
+        const slots = await this.prisma.availability.findMany({
+            where: {
+                vendorServiceId: parseInt(vendorServiceId, 10),
+                date: { gte: start, lte: end },
+                isBlocked: false,
+            },
+        });
+
+        for (const slot of slots) {
+            await this.prisma.availability.update({
+                where: { id: slot.id },
+                data: {
+                    availableUnits: Math.max(slot.availableUnits - quantity, 0),
+                },
+            });
+        }
     }
 
     async increaseUnits(vendorServiceId: string, start: Date, end: Date, quantity: number): Promise<void> {
-        // Logic to increase units
+        const slots = await this.prisma.availability.findMany({
+            where: {
+                vendorServiceId: parseInt(vendorServiceId, 10),
+                date: { gte: start, lte: end },
+            },
+        });
+
+        for (const slot of slots) {
+            await this.prisma.availability.update({
+                where: { id: slot.id },
+                data: {
+                    availableUnits: slot.availableUnits + quantity,
+                },
+            });
+        }
     }
 }

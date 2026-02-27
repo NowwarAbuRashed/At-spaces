@@ -1,58 +1,134 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import type { IBookingRepository } from '../../../domain/interfaces/booking-repository.interface';
 import type { IAvailabilityRepository } from '../../../domain/interfaces/availability-repository.interface';
+import type { IPricingService } from '../../interfaces/services/pricing-service.interface';
 import { CheckAvailabilityDto } from '../../dtos/customer/check-availability.dto';
+import { PrismaService } from '../../../infrastructure/services/prisma.service';
 
 @Injectable()
 export class CustomerService {
     constructor(
         @Inject('IBookingRepository') private readonly bookingRepository: IBookingRepository,
         @Inject('IAvailabilityRepository') private readonly availabilityRepository: IAvailabilityRepository,
-        // potentially inject branch repository for customer branch listings
+        @Inject('IPricingService') private readonly pricingService: IPricingService,
+        private readonly prisma: PrismaService,
     ) { }
 
     async getBranches(city?: string, serviceType?: string): Promise<any[]> {
-        // Implementation to fetch branches with filtering
-        // Mock response
-        return [
-            {
-                id: 1,
-                name: "Main Branch",
-                city: city || "Amman",
-                address: "Street 1",
-                latitude: 31.95,
-                longitude: 35.91
-            }
-        ];
+        const where: any = { status: 'active' };
+
+        if (city) {
+            where.city = city;
+        }
+
+        if (serviceType) {
+            where.vendorServices = {
+                some: {
+                    service: { name: serviceType },
+                    isAvailable: true,
+                },
+            };
+        }
+
+        return this.prisma.branch.findMany({
+            where,
+            include: {
+                vendor: {
+                    select: { id: true, fullName: true },
+                },
+                vendorServices: {
+                    where: { isAvailable: true },
+                    include: {
+                        service: { select: { name: true, unit: true } },
+                    },
+                },
+            },
+            orderBy: { name: 'asc' },
+        });
     }
 
     async getBranchDetails(id: number): Promise<any> {
-        // Implementation to fetch branch + services + facilities
-        // Mock response matching the requested schema update
+        const branch = await this.prisma.branch.findUnique({
+            where: { id },
+            include: {
+                vendor: {
+                    select: { id: true, fullName: true, email: true },
+                },
+                branchFacilities: {
+                    include: {
+                        facility: true,
+                    },
+                },
+                vendorServices: {
+                    where: { isAvailable: true },
+                    include: {
+                        service: true,
+                        serviceFeatures: {
+                            include: { feature: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!branch) throw new NotFoundException('Branch not found');
+
         return {
-            id,
-            name: "WeWork Abdali",
-            facilities: [
-                { id: 1, name: "WiFi", icon: "wifi", isAvailable: true, description: "100 Mbps" },
-                { id: 2, name: "Parking", icon: "car", isAvailable: true }
-            ],
-            services: [
-                { serviceId: 1, name: "Hot Desk", pricePerUnit: 10, unit: "hour" }
-            ]
+            id: branch.id,
+            name: branch.name,
+            description: branch.description,
+            city: branch.city,
+            address: branch.address,
+            latitude: branch.latitude,
+            longitude: branch.longitude,
+            status: branch.status,
+            vendor: branch.vendor,
+            facilities: branch.branchFacilities.map(bf => ({
+                id: bf.facility.id,
+                name: bf.facility.name,
+                icon: bf.facility.icon,
+                isAvailable: bf.isAvailable,
+                description: bf.description,
+            })),
+            services: branch.vendorServices.map(vs => ({
+                vendorServiceId: vs.id,
+                serviceName: vs.service.name,
+                pricePerUnit: vs.pricePerUnit,
+                priceUnit: vs.priceUnit,
+                maxCapacity: vs.maxCapacity,
+                minBookingDuration: vs.minBookingDuration,
+                maxBookingDuration: vs.maxBookingDuration,
+                features: vs.serviceFeatures.map(sf => ({
+                    id: sf.feature.id,
+                    name: sf.feature.name,
+                    icon: sf.feature.icon,
+                    quantity: sf.quantity,
+                })),
+            })),
         };
     }
 
     async checkAvailability(dto: CheckAvailabilityDto): Promise<{ available: boolean; price: number }> {
-        // Core business logic to check availability
+        const start = new Date(dto.startTime);
+        const end = new Date(dto.endTime);
+
         const isAvailable = await this.availabilityRepository.checkAvailability(
             dto.vendorServiceId.toString(),
-            new Date(dto.startTime),
-            new Date(dto.endTime),
+            start,
+            end,
             dto.quantity
         );
 
-        // Calculate price based on service rules
-        return { available: isAvailable, price: 50.00 }; // Mock price
+        const priceResult = await this.pricingService.calculatePrice(
+            dto.vendorServiceId.toString(),
+            start,
+            end
+        );
+
+        return {
+            available: isAvailable,
+            price: priceResult.amount * dto.quantity,
+        };
     }
 
     async getMyBookings(userId: number): Promise<any[]> {
@@ -63,7 +139,6 @@ export class CustomerService {
         const booking = await this.bookingRepository.findById(bookingId.toString());
         if (!booking) throw new NotFoundException('Booking not found');
 
-        // Ensure the booking belongs to the requesting user (auth check)
         if (booking.customerId !== userId.toString()) {
             throw new NotFoundException('Booking not found for user');
         }
