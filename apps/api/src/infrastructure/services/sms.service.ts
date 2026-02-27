@@ -1,30 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ISmsService } from '../../application/interfaces/external/sms-service.interface';
-// import { ConfigService } from '@nestjs/config';
-// import { Twilio } from 'twilio';
 
 @Injectable()
 export class SmsService implements ISmsService {
-    // private twilioClient: Twilio;
+    private readonly logger = new Logger(SmsService.name);
+    private twilioClient: any;
+    private fromNumber: string | undefined;
 
-    constructor(
-        // private configService: ConfigService
-    ) {
-        // const accountSid = this.configService.get('TWILIO_ACCOUNT_SID');
-        // const authToken = this.configService.get('TWILIO_AUTH_TOKEN');
-        // this.twilioClient = new Twilio(accountSid, authToken);
+    constructor(private configService: ConfigService) {
+        const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
+        const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
+        this.fromNumber = this.configService.get<string>('TWILIO_PHONE_NUMBER');
+
+        if (accountSid && authToken) {
+            try {
+                // Dynamic import to avoid crash if twilio is not installed
+                const twilio = require('twilio');
+                this.twilioClient = twilio(accountSid, authToken);
+                this.logger.log('Twilio client initialized');
+            } catch {
+                this.logger.warn('Twilio package not installed — SMS will be logged only');
+            }
+        } else {
+            this.logger.warn('Twilio credentials not configured — SMS will be logged only');
+        }
     }
 
     async send(to: string, message: string): Promise<void> {
-        // try {
-        //   await this.twilioClient.messages.create({
-        //     body: message,
-        //     from: this.configService.get('TWILIO_PHONE_NUMBER'),
-        //     to,
-        //   });
-        // } catch (error) {
-        //   console.error('Error sending SMS', error);
-        // }
-        console.log(`[SmsService] Sending SMS to ${to} - Message: ${message}`);
+        if (this.twilioClient) {
+            try {
+                await this.twilioClient.messages.create({
+                    body: message,
+                    from: this.fromNumber,
+                    to,
+                });
+                this.logger.log(`SMS sent to ${to}`);
+            } catch (error) {
+                this.logger.error(`Failed to send SMS to ${to}`, error);
+            }
+        } else {
+            this.logger.log(`[SMS-LOG] To: ${to} — Message: ${message}`);
+        }
     }
 }

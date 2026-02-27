@@ -1,37 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IEmailService } from '../../application/interfaces/external/email-service.interface';
-// import { ConfigService } from '@nestjs/config';
-// import * as nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService implements IEmailService {
-    // private transporter: nodemailer.Transporter;
+    private readonly logger = new Logger(EmailService.name);
+    private transporter: nodemailer.Transporter;
 
-    constructor(
-        // private configService: ConfigService
-    ) {
-        // this.transporter = nodemailer.createTransport({
-        //   host: this.configService.get('SMTP_HOST'),
-        //   port: this.configService.get('SMTP_PORT'),
-        //   secure: false, // true for 465, false for other ports
-        //   auth: {
-        //     user: this.configService.get('SMTP_USER'),
-        //     pass: this.configService.get('SMTP_PASS'),
-        //   },
-        // });
+    constructor(private configService: ConfigService) {
+        const smtpEmail = this.configService.get<string>('SMTP_EMAIL');
+        const smtpPassword = this.configService.get<string>('SMTP_APP_PASSWORD');
+
+        this.transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: smtpEmail,
+                pass: smtpPassword,
+            },
+        });
     }
 
     async send(to: string, subject: string, body: string): Promise<void> {
-        // try {
-        //   await this.transporter.sendMail({
-        //     from: '"At Spaces" <noreply@atspaces.com>',
-        //     to,
-        //     subject,
-        //     text: body,
-        //   });
-        // } catch (error) {
-        //   console.error('Error sending email', error);
-        // }
-        console.log(`[EmailService] Sending email to ${to} - Subject: ${subject}`);
+        try {
+            await this.transporter.sendMail({
+                from: `"At Spaces" <${this.configService.get('SMTP_EMAIL')}>`,
+                to,
+                subject,
+                text: body,
+            });
+            this.logger.log(`Email sent to ${to} - Subject: ${subject}`);
+        } catch (error) {
+            this.logger.error(`Failed to send email to ${to}`, error);
+        }
     }
 }
