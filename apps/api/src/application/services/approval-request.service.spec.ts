@@ -4,11 +4,14 @@ import { ApprovalRequest } from '../../domain/entities/approval-request.entity';
 import { BusinessException } from '../exceptions/business.exception';
 import { ApprovalStatus } from '../../domain/enums/approval-status.enum';
 import { RequestType } from '../../domain/enums/request-type.enum';
+import { PrismaService } from '../../infrastructure/services/prisma.service';
 
 describe('ApprovalRequestService', () => {
     let service: ApprovalRequestService;
     let approvalRequestRepositoryMock: any;
     let vendorServiceRepositoryMock: any;
+    let auditServiceMock: any;
+    let prismaServiceMock: any;
 
     beforeEach(async () => {
         approvalRequestRepositoryMock = {
@@ -22,11 +25,23 @@ describe('ApprovalRequestService', () => {
             save: jest.fn(),
         };
 
+        auditServiceMock = {
+            logAction: jest.fn().mockResolvedValue(undefined),
+        };
+
+        prismaServiceMock = {
+            vendorService: {
+                update: jest.fn().mockResolvedValue({}),
+            },
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 ApprovalRequestService,
                 { provide: 'IApprovalRequestRepository', useValue: approvalRequestRepositoryMock },
                 { provide: 'IVendorServiceRepository', useValue: vendorServiceRepositoryMock },
+                { provide: 'IAuditService', useValue: auditServiceMock },
+                { provide: PrismaService, useValue: prismaServiceMock },
             ],
         }).compile();
 
@@ -83,18 +98,19 @@ describe('ApprovalRequestService', () => {
 
         it('should update vendor service capacity when type is CAPACITY_CHANGE', async () => {
             const request = new ApprovalRequest(
-                'req-1', 'vendor-1', 'b-1', 's-1', RequestType.CAPACITY_CHANGE, '10', '20'
+                'req-1', 'vendor-1', 'b-1', '5', RequestType.CAPACITY_CHANGE, '10', '20'
             );
             approvalRequestRepositoryMock.findById.mockResolvedValue(request);
 
-            const vendorService = { id: 's-1', capacity: 10 };
-            vendorServiceRepositoryMock.findById.mockResolvedValue(vendorService);
+            await service.approveRequest('req-1', '1', 'Approved');
 
-            await service.approveRequest('req-1', 'admin-1', 'Approved');
-
-            // In the codebase it looks like this is somewhat stubbed but the repository is fetched.
-            // If the code is just fetching it without calling save yet, we verify fetch.
-            expect(vendorServiceRepositoryMock.findById).toHaveBeenCalledWith('s-1');
+            // Verify Prisma update was called with new capacity
+            expect(prismaServiceMock.vendorService.update).toHaveBeenCalledWith({
+                where: { id: 5 },
+                data: { maxCapacity: 20 },
+            });
+            // Verify audit log was called
+            expect(auditServiceMock.logAction).toHaveBeenCalled();
         });
     });
 
